@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#FEE500" />
+    <meta
+      name="description"
+      content="카카오톡 간편 모드 — 디지털 취약계층을 위한 UX/UI 리디자인과 인터랙티브 웹 데모. 2020년 팀 아이디어를 2026년 설계와 동작으로 발전시킨 개인 포트폴리오입니다."
+    />
+    <title>카카오톡 간편 모드 — 대화가 쉬워지는 화면</title>
+    <link rel="icon" href="./assets/icons/chats.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#demo">데모로 바로 가기</a>
+    <header class="site-header wrap">
+      <a class="wordmark" href="#"
+        ><span class="brand-mark" aria-hidden="true">쉬</span>카카오톡
+        <strong>간편 모드</strong></a
+      >
+      <nav aria-label="프로젝트 메뉴">
+        <a href="#demo">체험하기</a><a href="#story">설계 이야기</a
+        ><a
+          href="https://github.com/hansol000808/kakaotalk-easy-mode"
+          target="_blank"
+          rel="noopener noreferrer"
+          >GitHub <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+    </header>
+    <main>
+      <section class="hero wrap" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="yellow-dot"></span> DIGITAL INCLUSION · UX/UI REDESIGN
+          </p>
+          <h1 id="hero-title">
+            누구에게나,<br />대화는 <span class="highlight">쉬워야</span
+            ><br />하니까.
+          </h1>
+          <p class="hero-lead">
+            익숙하지 않아도, 주저하지 않도록.<br />매일 쓰는 대화 기능을 크고
+            분명하게 담았습니다.
+          </p>
+          <p class="hero-description">
+            디지털 환경이 낯선 사용자를 위한<br /><strong
+              >카카오톡 간편 모드</strong
+            >를 직접 체험해 보세요.
+          </p>
+          <div class="principles">
+            <span>읽기 쉽게</span><span>찾기 쉽게</span
+            ><span>실수해도 안전하게</span>
+          </div>
+          <div class="scenario-panel">
+            <p class="mini-label">다른 상황도 살펴보세요</p>
+            <div class="scenario-buttons" aria-label="데모 상황 선택">
+              <button data-scenario="default">처음부터</button
+              ><button data-scenario="failure">전송 실패</button
+              ><button data-scenario="empty">대화가 없을 때</button>
+            </div>
+            <p class="fine-print">
+              가상의 친구와 메시지를 사용하는 시연입니다.<br />실제 메시지는
+              전송되지 않으며, 입력은 이 브라우저에 저장됩니다.
+            </p>
+          </div>
+          <a class="story-link" href="#story"
+            >작은 선택에 담긴 설계 이야기 <span aria-hidden="true">↓</span></a
+          >
+        </div>
+        <div class="demo-stage" id="demo">
+          <div class="stage-label">
+            <span class="live-dot"></span> 직접 눌러보는 간편 모드
+            <span>INTERACTIVE DEMO</span>
+          </div>
+          <div class="phone" aria-label="카카오톡 간편 모드 체험 화면">
+            <div class="status-bar" aria-hidden="true">
+              <span>9:41</span><span id="mode-indicator">간편 모드</span
+              ><span class="status-shapes">▂▄▆ <i></i></span>
+            </div>
+            <div id="app" class="app">
+              <noscript
+                >이 체험은 JavaScript가 필요합니다. 아래에서 설계 이야기를 읽을
+                수 있습니다.</noscript
+              >
+            </div>
+            <div class="phone-bottom" aria-hidden="true"><span></span></div>
+          </div>
+          <p class="stage-caption">
+            친구 선택 → 메시지 작성 → 보내기를 체험할 수 있어요.
+          </p>
+          <p
+            id="storage-notice"
+            class="storage-notice"
+            role="status"
+            hidden
+          ></p>
+        </div>
+      </section>
+      <section class="story wrap" id="story" aria-labelledby="story-title">
+        <div class="section-heading">
+          <p class="eyebrow">01 / DESIGN QUESTION</p>
+          <h2 id="story-title">
+            기능이 많아질수록,<br />대화는 더 쉬워졌을까요?
+          </h2>
+        </div>
+        <div class="story-intro">
+          <p>
+            메신저에 익숙한 사람에게 편리한 기능도, 디지털 환경이 낯선
+            사람에게는 다음 행동을 고르는 부담이 될 수 있습니다.
+          </p>
+          <p>
+            이 프로젝트는 핵심 기능에 집중한
+            <strong>선택 가능한 간편 모드</strong>를 제안합니다. 기능의 수보다,
+            사용자가 자신 있게 행동할 수 있는 화면을 먼저 생각했습니다.
+          </p>
+          <div class="provenance">
+            <span>2020</span>
+            <p>
+              디자인적사고와문제해결 수업<br /><strong>팀 아이디어 제안</strong>
+            </p>
+            <span class="timeline-arrow" aria-hidden="true">→</span
+            ><span>2026</span>
+            <p>개인 리디자인<br /><strong>Figma 설계 · 첫 웹 구현</strong></p>
+          </div>
+        </div>
+      </section>
+      <section class="decisions wrap" aria-labelledby="decisions-title">
+        <div class="section-heading">
+          <p class="eyebrow">02 / DESIGN DECISIONS</p>
+          <h2 id="decisions-title">쉬운 화면을 만드는<br />세 가지 기준</h2>
+        </div>
+        <div class="decision-list">
+          <article class="decision">
+            <span class="decision-number">01</span>
+            <div>
+              <h3>아이콘을 해석하지 않아도</h3>
+              <p>
+                친구, 대화, 친구 찾기, 도움말. 이름과 짧은 설명을 함께 배치해
+                버튼을 누른 다음 일어날 일을 알려줍니다.
+              </p>
+            </div>
+            <div class="design-detail">
+              <strong>20px</strong><span>본문 기준 글자 크기</span>
+            </div>
+          </article>
+          <article class="decision">
+            <span class="decision-number">02</span>
+            <div>
+              <h3>실수는 쉽게 되돌릴 수 있도록</h3>
+              <p>
+                나가도 초안은 남아 있고, 전송 실패는 같은 메시지에서 다시
+                시도합니다. 모드를 바꾸기 전에는 한 번 더 확인합니다.
+              </p>
+            </div>
+            <div class="design-detail">
+              <strong>초안 보존</strong><span>화면을 이동해도 그대로</span>
+            </div>
+          </article>
+          <article class="decision">
+            <span class="decision-number">03</span>
+            <div>
+              <h3>지금 상태와 다음 행동을 분명하게</h3>
+              <p>
+                보내는 중, 전송 완료, 전송 실패를 글자로 구분합니다. 빈 목록과
+                검색 결과가 없을 때도 다음에 할 수 있는 행동을 안내합니다.
+              </p>
+            </div>
+            <div class="design-detail">
+              <strong>56px</strong><span>주요 버튼의 최소 높이</span>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="reflection wrap" aria-labelledby="reflection-title">
+        <div>
+          <p class="eyebrow">03 / NEXT QUESTION</p>
+          <h2 id="reflection-title">
+            화면을 만든 다음에는,<br />사용자에게 배워야 합니다.
+          </h2>
+        </div>
+        <div>
+          <p>
+            큰 글씨와 명확한 안내가 실제로 도움이 되는지는 사용자 관찰을 통해
+            확인해야 합니다. 다음 단계는 고령층 등 디지털 환경이 낯선 사용자가
+            첫 대화 시작과 실패 복구를 스스로 완료할 수 있는지 살펴보는
+            것입니다.
+          </p>
+          <p class="fine-print">
+            현재 결과물은 설계 가설을 시연하는 프로토타입입니다. 실제 사용자
+            조사나 사용성 개선 효과를 검증한 결과는 포함하지 않습니다.
+          </p>
+          <a
+            class="text-link"
+            href="https://github.com/hansol000808/kakaotalk-easy-mode/blob/main/docs/DESIGN.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            >설계 기준과 구현 범위 읽기 <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer wrap">
+      <p>
+        <strong>카카오톡 간편 모드</strong><br />기획·리디자인 한재혁 · 2026
+      </p>
+      <p>
+        2020년 팀 아이디어를 바탕으로 AI 도구와 함께 발전시킨 개인
+        포트폴리오입니다.<br />카카오의 공식 서비스가 아니며, 카카오와
+        제휴하거나 후원받지 않았습니다.
+      </p>
+      <a href="#">맨 위로 ↑</a>
+    </footer>
+    <dialog
+      id="confirm-dialog"
+      aria-labelledby="dialog-title"
+      aria-describedby="dialog-description"
+    >
+      <form method="dialog">
+        <span class="dialog-symbol" aria-hidden="true">?</span>
+        <h2 id="dialog-title"></h2>
+        <p id="dialog-description"></p>
+        <div class="dialog-actions">
+          <button value="cancel" class="button secondary" autofocus>취소</button
+          ><button value="confirm" id="dialog-confirm" class="button primary">
+            변경하기
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+  </body>
+</html>
