@@ -1,7 +1,20 @@
-/** Browser-local demo state. No account, network, or real messenger data is used. */
+/** Local concept demo: no account, network delivery, or real messenger data. */
 export const MAX_MESSAGE_LENGTH = 500;
 const MAX_STORED_MESSAGES = 300;
 const CONTACT_IDS = ["minji", "seoyeon", "jeongwoo"];
+const ITEM_LABELS = Object.freeze({
+  photo: Object.freeze({
+    walk: "산책 사진",
+    flower: "꽃 사진",
+    sea: "바다 사진",
+  }),
+  gift: Object.freeze({ coffee: "커피 선물", cake: "케이크 선물" }),
+  emoticon: Object.freeze({
+    smile: "😊 웃어요",
+    heart: "❤️ 마음을 전해요",
+    thanks: "🙌 고마워요",
+  }),
+});
 
 export const CONTACTS = Object.freeze([
   Object.freeze({
@@ -28,82 +41,106 @@ export const CONTACTS = Object.freeze([
 ]);
 
 const emptyDrafts = () => ({ minji: "", seoyeon: "", jeongwoo: "" });
+const defaultPreferences = () => ({
+  fontSize: "normal",
+  notifications: true,
+  profileName: "나",
+  profileMood: "좋은 하루 보내세요.",
+  profileAvatar: "smile",
+});
 const hasContact = (id) => CONTACT_IDS.includes(id);
 const isRecord = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 const isTime = (value) =>
   typeof value === "number" && Number.isFinite(value) && value >= 0;
-const limitedText = (value) =>
-  typeof value === "string"
-    ? Array.from(value).slice(0, MAX_MESSAGE_LENGTH).join("")
-    : "";
-const normalizeSearch = (value) =>
-  String(value ?? "")
-    .normalize("NFC")
-    .toLocaleLowerCase("ko-KR")
-    .replace(/\s+/gu, "");
+const limitedText = (value, limit = MAX_MESSAGE_LENGTH) =>
+  typeof value === "string" ? Array.from(value).slice(0, limit).join("") : "";
 const result = (state, messageId = null, error = null) => ({
   state,
   messageId,
   accepted: error === null,
   error,
 });
+const validItem = (kind, payload) =>
+  Object.hasOwn(ITEM_LABELS, kind) &&
+  typeof payload === "string" &&
+  Object.hasOwn(ITEM_LABELS[kind], payload);
 
-/** Explicit scenarios only replace state when the caller chooses to reset the demo. */
 export function createInitialState(scenario = "default") {
   const state = {
-    version: 1,
+    version: 2,
     mode: "easy",
     messages: [],
     drafts: emptyDrafts(),
+    preferences: defaultPreferences(),
     nextId: 1,
   };
   if (scenario === "empty") return state;
-  const now = Date.now();
   state.messages.push({
     id: "msg-1",
     contactId: "minji",
     text: "오늘도 좋은 하루 보내세요.",
+    kind: "text",
+    payload: null,
     direction: "incoming",
     status: "sent",
-    createdAt: now,
-    willFail: false,
+    createdAt: Date.now(),
   });
   state.nextId = 2;
-  if (scenario === "failure") {
-    state.messages.push({
-      id: "msg-2",
-      contactId: "minji",
-      text: "고마워요. 곧 만나요!",
-      direction: "outgoing",
-      status: "failed",
-      createdAt: now + 1,
-      willFail: false,
-    });
-    state.nextId = 3;
-  }
   return state;
 }
 
+/** Allow only the preference fields exposed by the demo. */
+export function updatePreferences(state, patch) {
+  if (!isRecord(patch)) return state;
+  const preferences = { ...state.preferences };
+  if (
+    Object.hasOwn(patch, "fontSize") &&
+    ["normal", "large"].includes(patch.fontSize)
+  )
+    preferences.fontSize = patch.fontSize;
+  if (
+    Object.hasOwn(patch, "notifications") &&
+    typeof patch.notifications === "boolean"
+  )
+    preferences.notifications = patch.notifications;
+  if (
+    Object.hasOwn(patch, "profileAvatar") &&
+    ["smile", "flower", "mountain"].includes(patch.profileAvatar)
+  )
+    preferences.profileAvatar = patch.profileAvatar;
+  if (
+    Object.hasOwn(patch, "profileName") &&
+    typeof patch.profileName === "string"
+  ) {
+    const name = limitedText(patch.profileName, 20).trim();
+    if (name) preferences.profileName = name;
+  }
+  if (
+    Object.hasOwn(patch, "profileMood") &&
+    typeof patch.profileMood === "string"
+  )
+    preferences.profileMood = limitedText(patch.profileMood, 80).trim();
+  return { ...state, preferences };
+}
+
 /**
- * Storage boundary: rebuild only known fields and bound stored data.
- * A pending message has no surviving timer after reload; retain it as failed so
- * the user can explicitly retry the same bubble, rather than silently resending.
+ * Rebuild only known fields at the storage boundary. Version 1's unsent text is
+ * recovered to a draft, never converted into a completed message. Current drafts
+ * come first, followed by unsent text, within the same 500-character limit.
  */
 export function validateState(value) {
   if (
     !isRecord(value) ||
-    value.version !== 1 ||
+    ![1, 2].includes(value.version) ||
     !Array.isArray(value.messages) ||
     !isRecord(value.drafts)
-  ) {
+  )
     return createInitialState();
-  }
   const drafts = emptyDrafts();
-  for (const id of CONTACT_IDS) {
+  for (const id of CONTACT_IDS)
     if (Object.hasOwn(value.drafts, id))
       drafts[id] = limitedText(value.drafts[id]);
-  }
   const messages = [];
   const seenIds = new Set();
   let maxId = 0;
@@ -117,46 +154,60 @@ export function validateState(value) {
       continue;
     if (
       seenIds.has(message.id) ||
-      typeof message.text !== "string" ||
-      !message.text.trim()
-    )
-      continue;
-    if (
       !["incoming", "outgoing"].includes(message.direction) ||
-      !["pending", "sent", "failed"].includes(message.status) ||
       !isTime(message.createdAt)
     )
       continue;
-    const text = limitedText(message.text);
+    const kind = value.version === 1 ? "text" : message.kind;
+    if (!["text", "photo", "gift", "emoticon"].includes(kind)) continue;
+    if (kind !== "text" && !validItem(kind, message.payload)) continue;
+    const text =
+      kind === "text"
+        ? limitedText(message.text)
+        : ITEM_LABELS[kind][message.payload];
     if (!text.trim()) continue;
-    const numericId = Number(message.id.slice(4));
-    maxId = Math.max(maxId, numericId);
+    const legacyUnsent =
+      value.version === 1 &&
+      message.direction === "outgoing" &&
+      ["pending", "failed"].includes(message.status);
+    if (message.status !== "sent" && !legacyUnsent) continue;
     seenIds.add(message.id);
+    maxId = Math.max(maxId, Number(message.id.slice(4)));
+    if (legacyUnsent) {
+      const current = drafts[message.contactId];
+      drafts[message.contactId] = limitedText(
+        current ? `${current}\n${text}` : text,
+      );
+      continue;
+    }
     messages.push({
       id: message.id,
       contactId: message.contactId,
       text,
+      kind,
+      payload: kind === "text" ? null : message.payload,
       direction: message.direction,
-      status:
-        message.direction === "incoming"
-          ? "sent"
-          : message.status === "pending"
-            ? "failed"
-            : message.status,
+      status: "sent",
       createdAt: message.createdAt,
-      willFail: false,
     });
   }
-  return {
-    version: 1,
+  const storedNextId =
+    Number.isSafeInteger(value.nextId) &&
+    value.nextId > 0 &&
+    value.nextId < 1e13
+      ? value.nextId
+      : 1;
+  const state = {
+    version: 2,
     mode: value.mode === "standard" ? "standard" : "easy",
     messages,
     drafts,
-    nextId: maxId + 1,
+    preferences: defaultPreferences(),
+    nextId: Math.max(maxId + 1, storedNextId),
   };
+  return updatePreferences(state, value.preferences);
 }
 
-/** Keep draft text verbatim, including whitespace, while editing or navigating. */
 export function setDraft(state, contactId, text) {
   if (!hasContact(contactId)) return state;
   return {
@@ -165,22 +216,23 @@ export function setDraft(state, contactId, text) {
   };
 }
 
+/** Local sends complete immediately. Only known sample media can be selected. */
 export function sendMessage(
   state,
   contactId,
-  { fail = false, now = Date.now() } = {},
+  { text: explicitText, kind = "text", payload = null, now = Date.now() } = {},
 ) {
   if (!hasContact(contactId)) return result(state, null, "unknown-contact");
-  if (
-    state.messages.some(
-      (message) =>
-        message.contactId === contactId && message.status === "pending",
-    )
-  )
-    return result(state, null, "pending");
-  const text = limitedText(state.drafts[contactId]).trim();
+  if (!["text", "photo", "gift", "emoticon"].includes(kind))
+    return result(state, null, "unknown-kind");
+  if (kind !== "text" && !validItem(kind, payload))
+    return result(state, null, "invalid-payload");
+  const usesDraft = kind === "text" && explicitText === undefined;
+  const text =
+    kind === "text"
+      ? limitedText(usesDraft ? state.drafts[contactId] : explicitText).trim()
+      : ITEM_LABELS[kind][payload];
   if (!text) return result(state, null, "empty");
-  // nextId is rebuilt on load; checking live IDs also protects caller-supplied state.
   let nextId =
     Number.isSafeInteger(state.nextId) && state.nextId > 0 ? state.nextId : 1;
   while (state.messages.some((message) => message.id === `msg-${nextId}`))
@@ -190,64 +242,18 @@ export function sendMessage(
     id: messageId,
     contactId,
     text,
+    kind,
+    payload: kind === "text" ? null : payload,
     direction: "outgoing",
-    status: "pending",
+    status: "sent",
     createdAt: isTime(now) ? now : Date.now(),
-    willFail: fail === true,
   };
   return result(
     {
       ...state,
       messages: [...state.messages, message].slice(-MAX_STORED_MESSAGES),
-      drafts: { ...state.drafts, [contactId]: "" },
+      drafts: usesDraft ? { ...state.drafts, [contactId]: "" } : state.drafts,
       nextId: nextId + 1,
-    },
-    messageId,
-  );
-}
-
-/** Settlement only changes a pending message; stale timers cannot replace a result. */
-export function settleMessage(state, messageId, status) {
-  if (!["sent", "failed"].includes(status)) return state;
-  const message = state.messages.find((item) => item.id === messageId);
-  if (
-    !message ||
-    message.direction !== "outgoing" ||
-    message.status !== "pending"
-  )
-    return state;
-  return {
-    ...state,
-    messages: state.messages.map((item) =>
-      item.id === messageId ? { ...item, status, willFail: false } : item,
-    ),
-  };
-}
-
-/** A retry keeps the original message ID, text, position, and current draft. */
-export function retryMessage(state, messageId, { fail = false } = {}) {
-  const message = state.messages.find((item) => item.id === messageId);
-  if (
-    !message ||
-    message.direction !== "outgoing" ||
-    message.status !== "failed"
-  )
-    return result(state, null, "not-failed");
-  if (
-    state.messages.some(
-      (item) =>
-        item.contactId === message.contactId && item.status === "pending",
-    )
-  )
-    return result(state, null, "pending");
-  return result(
-    {
-      ...state,
-      messages: state.messages.map((item) =>
-        item.id === messageId
-          ? { ...item, status: "pending", willFail: fail === true }
-          : item,
-      ),
     },
     messageId,
   );
@@ -282,12 +288,4 @@ export function getConversations(state) {
         Number(second.hasDraft) - Number(first.hasDraft) ||
         second.updatedAt - first.updatedAt,
     );
-}
-
-/** Search uses the fictitious contact list, never persisted contact objects. */
-export function findContacts(_state, query) {
-  const search = normalizeSearch(query);
-  return CONTACTS.filter((contact) =>
-    normalizeSearch(contact.name).includes(search),
-  );
 }

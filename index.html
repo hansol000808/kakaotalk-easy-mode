@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#FEE500" />
     <meta
       name="description"
-      content="카카오톡 간편 모드 — 디지털 취약계층을 위한 UX/UI 리디자인과 인터랙티브 웹 데모. 2020년 팀 아이디어를 2026년 설계와 동작으로 발전시킨 개인 포트폴리오입니다."
+      content="카카오톡 간편 모드 — 하고 싶은 일을 일상적인 말로 입력해 필요한 기능을 찾는 인터랙티브 웹 데모. 2020년 팀 아이디어를 바탕으로 한 디지털 포용성 UX/UI 리디자인입니다."
     />
-    <title>카카오톡 간편 모드 — 대화가 쉬워지는 화면</title>
+    <title>카카오톡 간편 모드 — 하고 싶은 말로 기능 찾기</title>
     <link rel="icon" href="./assets/icons/chats.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css" />
     <script type="module" src="./app.js"></script>
@@ -37,32 +37,43 @@
             <span class="yellow-dot"></span> DIGITAL INCLUSION · UX/UI REDESIGN
           </p>
           <h1 id="hero-title">
-            누구에게나,<br />대화는 <span class="highlight">쉬워야</span
-            ><br />하니까.
+            기능 이름을 몰라도,<br /><span class="highlight"
+              >하고 싶은 말로.</span
+            >
           </h1>
           <p class="hero-lead">
-            익숙하지 않아도, 주저하지 않도록.<br />매일 쓰는 대화 기능을 크고
-            분명하게 담았습니다.
+            “사진 보내고 싶어”, “얼굴 보고 통화하고 싶어.”<br />하고 싶은 일을
+            적으면 필요한 기능까지 안내합니다.
           </p>
           <p class="hero-description">
-            디지털 환경이 낯선 사용자를 위한<br /><strong
-              >카카오톡 간편 모드</strong
-            >를 직접 체험해 보세요.
+            홈에는 자주 쓰는 메뉴를 크게.<br />다른 기능은
+            <strong>기능 찾기</strong>로 쉽게 찾아가세요.
           </p>
           <div class="principles">
-            <span>읽기 쉽게</span><span>찾기 쉽게</span
-            ><span>실수해도 안전하게</span>
+            <span>큰 핵심 메뉴</span><span>일상적인 말로 찾기</span
+            ><span>기능으로 바로 이동</span>
           </div>
           <div class="scenario-panel">
-            <p class="mini-label">다른 상황도 살펴보세요</p>
-            <div class="scenario-buttons" aria-label="데모 상황 선택">
-              <button data-scenario="default">처음부터</button
-              ><button data-scenario="failure">전송 실패</button
-              ><button data-scenario="empty">대화가 없을 때</button>
+            <p class="mini-label">어떤 일을 하고 싶으세요?</p>
+            <div class="scenario-buttons" aria-label="기능 찾기 예시">
+              <button type="button" data-example="사진 보내고 싶어">
+                사진 보내기</button
+              ><button type="button" data-example="얼굴 보고 통화하고 싶어">
+                얼굴 보고 통화</button
+              ><button type="button" data-example="선물 보내고 싶어">
+                선물 보내기
+              </button>
             </div>
+            <button
+              type="button"
+              data-action="reset-demo"
+              class="button quiet reset-demo"
+            >
+              체험 초기화
+            </button>
             <p class="fine-print">
-              가상의 친구와 메시지를 사용하는 시연입니다.<br />실제 메시지는
-              전송되지 않으며, 입력은 이 브라우저에 저장됩니다.
+              가상 데이터로 기능 이동을 체험하는 데모입니다.<br />실제
+              전송·통화·결제는 이루어지지 않습니다.
             </p>
           </div>
           <a class="story-link" href="#story"
@@ -88,7 +99,7 @@
             <div class="phone-bottom" aria-hidden="true"><span></span></div>
           </div>
           <p class="stage-caption">
-            친구 선택 → 메시지 작성 → 보내기를 체험할 수 있어요.
+            하고 싶은 일 입력 → 맞는 기능 확인 → 기능 화면으로 이동
           </p>
           <p
             id="storage-notice"
@@ -102,18 +113,19 @@
         <div class="section-heading">
           <p class="eyebrow">01 / DESIGN QUESTION</p>
           <h2 id="story-title">
-            기능이 많아질수록,<br />대화는 더 쉬워졌을까요?
+            필요한 기능은 있는데,<br />어디에 있는지 모르겠다면?
           </h2>
         </div>
         <div class="story-intro">
           <p>
-            메신저에 익숙한 사람에게 편리한 기능도, 디지털 환경이 낯선
-            사람에게는 다음 행동을 고르는 부담이 될 수 있습니다.
+            사진을 보내고 싶어도 메뉴 이름과 위치를 모르면 시작하기 어렵습니다.
+            화면에 모든 기능을 늘어놓으면 원하는 일을 고르는 부담도 커집니다.
           </p>
           <p>
-            이 프로젝트는 핵심 기능에 집중한
-            <strong>선택 가능한 간편 모드</strong>를 제안합니다. 기능의 수보다,
-            사용자가 자신 있게 행동할 수 있는 화면을 먼저 생각했습니다.
+            2020년 팀이 제안한 간편 모드는 홈을 단순하게 유지하면서, 사용자가
+            <strong>하고 싶은 일을 말로 설명해 기능을 찾도록</strong>
+            구상했습니다. 이번 웹 데모는 그 검색 의도를 실제 화면 이동으로
+            구체화했습니다.
           </p>
           <div class="provenance">
             <span>2020</span>
@@ -129,46 +141,47 @@
       <section class="decisions wrap" aria-labelledby="decisions-title">
         <div class="section-heading">
           <p class="eyebrow">02 / DESIGN DECISIONS</p>
-          <h2 id="decisions-title">쉬운 화면을 만드는<br />세 가지 기준</h2>
+          <h2 id="decisions-title">하고 싶은 일에서<br />필요한 기능까지</h2>
         </div>
         <div class="decision-list">
           <article class="decision">
             <span class="decision-number">01</span>
             <div>
-              <h3>아이콘을 해석하지 않아도</h3>
+              <h3>홈에는 네 가지 큰 메뉴</h3>
               <p>
-                친구, 대화, 친구 찾기, 도움말. 이름과 짧은 설명을 함께 배치해
-                버튼을 누른 다음 일어날 일을 알려줍니다.
+                친구, 대화, 기능 찾기, 도움말을 크게 배치합니다. 다른 기능은
+                기능 찾기를 통해 접근해 홈의 정보량을 줄입니다.
               </p>
             </div>
             <div class="design-detail">
-              <strong>20px</strong><span>본문 기준 글자 크기</span>
+              <strong>4개 메뉴</strong><span>자주 쓰는 일부터</span>
             </div>
           </article>
           <article class="decision">
             <span class="decision-number">02</span>
             <div>
-              <h3>실수는 쉽게 되돌릴 수 있도록</h3>
+              <h3>기능명 대신 하고 싶은 말</h3>
               <p>
-                나가도 초안은 남아 있고, 전송 실패는 같은 메시지에서 다시
-                시도합니다. 모드를 바꾸기 전에는 한 번 더 확인합니다.
+                “얼굴 보고 통화하고 싶어”를 입력하면 영상통화를 안내합니다.
+                사용자가 쓰는 표현과 서비스의 기능 이름을 연결합니다.
               </p>
             </div>
             <div class="design-detail">
-              <strong>초안 보존</strong><span>화면을 이동해도 그대로</span>
+              <strong>일상 언어</strong><span>기능 이름을 몰라도</span>
             </div>
           </article>
           <article class="decision">
             <span class="decision-number">03</span>
             <div>
-              <h3>지금 상태와 다음 행동을 분명하게</h3>
+              <h3>맞는 기능을 확인하고 바로 이동</h3>
               <p>
-                보내는 중, 전송 완료, 전송 실패를 글자로 구분합니다. 빈 목록과
-                검색 결과가 없을 때도 다음에 할 수 있는 행동을 안내합니다.
+                결과에서 기능 이름과 할 수 있는 일을 확인합니다. 원하는 항목을
+                선택하면 사진 보내기, 통화, 선물하기 같은 해당 기능의 체험
+                화면으로 이동합니다.
               </p>
             </div>
             <div class="design-detail">
-              <strong>56px</strong><span>주요 버튼의 최소 높이</span>
+              <strong>바로 이동</strong><span>찾은 기능을 체험하기</span>
             </div>
           </article>
         </div>
@@ -182,14 +195,14 @@
         </div>
         <div>
           <p>
-            큰 글씨와 명확한 안내가 실제로 도움이 되는지는 사용자 관찰을 통해
-            확인해야 합니다. 다음 단계는 고령층 등 디지털 환경이 낯선 사용자가
-            첫 대화 시작과 실패 복구를 스스로 완료할 수 있는지 살펴보는
-            것입니다.
+            사용자가 쓰는 말은 다양합니다. 다음 단계는 디지털 환경이 낯선
+            사용자가 자신의 표현으로 원하는 기능을 찾고, 결과를 이해한 뒤 해당
+            화면으로 이동할 수 있는지 관찰하는 것입니다.
           </p>
           <p class="fine-print">
-            현재 결과물은 설계 가설을 시연하는 프로토타입입니다. 실제 사용자
-            조사나 사용성 개선 효과를 검증한 결과는 포함하지 않습니다.
+            현재 기능 찾기는 정해진 기능 목록과 로컬 규칙으로 동작합니다. AI
+            호출 없이 탐색 흐름을 시연하며, 실제 사용자 테스트와 사용성 개선
+            효과 측정은 아직 진행하지 않았습니다.
           </p>
           <a
             class="text-link"

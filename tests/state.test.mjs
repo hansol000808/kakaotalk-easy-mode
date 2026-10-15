@@ -7,225 +7,308 @@ import {
   validateState,
   setDraft,
   sendMessage,
-  retryMessage,
-  settleMessage,
   setMode,
   getConversations,
-  findContacts,
+  updatePreferences,
 } from "../state.js";
 
-test("empty scenario can start a draft-only conversation without mutating original state", () => {
+test("empty state retains independent draft-only conversations without mutation", () => {
   const original = createInitialState("empty");
-  assert.equal(getConversations(original).length, 0);
-  const next = setDraft(original, "seoyeon", "다음에 만나요\n");
-  assert.equal(original.drafts.seoyeon, "");
-  assert.deepEqual(
-    getConversations(next).map(({ contactId, draft, hasDraft }) => ({
-      contactId,
-      draft,
-      hasDraft,
-    })),
-    [{ contactId: "seoyeon", draft: "다음에 만나요\n", hasDraft: true }],
+  const next = setDraft(
+    setDraft(original, "seoyeon", "다음에 만나요\n"),
+    "jeongwoo",
+    "안녕",
   );
+  assert.equal(original.drafts.seoyeon, "");
+  assert.equal(original.messages.length, 0);
+  assert.deepEqual(
+    getConversations(next).map(({ contactId }) => contactId),
+    ["seoyeon", "jeongwoo"],
+  );
+  assert.equal(next.drafts.seoyeon, "다음에 만나요\n");
 });
 
-test("blank and whitespace sends are rejected without consuming drafts or message IDs", () => {
+test("blank messages preserve state and normal sends complete locally once", () => {
   for (const text of ["", "  \n\t", "\u3000"]) {
     const state = setDraft(createInitialState("empty"), "minji", text);
-    const sent = sendMessage(state, "minji");
-    assert.equal(sent.accepted, false);
-    assert.equal(sent.error, "empty");
-    assert.equal(sent.state, state);
-    assert.equal(sent.state.drafts.minji, text);
-    assert.equal(sent.messageId, null);
+    assert.equal(sendMessage(state, "minji").error, "empty");
+    assert.equal(sendMessage(state, "minji").state, state);
   }
-});
-
-test("sending moves text to one pending bubble and repeated send cannot duplicate it", () => {
   const initial = setDraft(
     createInitialState("empty"),
     "minji",
     " 안녕하세요 🙂 ",
   );
-  const sending = sendMessage(initial, "minji", { now: 12345 });
-  assert.equal(sending.accepted, true);
-  assert.equal(sending.state.drafts.minji, "");
-  assert.equal(sending.state.messages[0].text, "안녕하세요 🙂");
-  assert.equal(sending.state.messages[0].createdAt, 12345);
-  assert.equal(sending.state.messages[0].status, "pending");
-  const typingNext = setDraft(sending.state, "minji", "다음 메시지");
-  const repeated = sendMessage(typingNext, "minji");
-  assert.equal(repeated.error, "pending");
-  assert.equal(repeated.state.messages.length, 1);
-  assert.equal(repeated.state.drafts.minji, "다음 메시지");
+  const sent = sendMessage(initial, "minji", { now: 12345 });
+  assert.equal(sent.accepted, true);
+  assert.equal(sent.state.messages[0].text, "안녕하세요 🙂");
+  assert.equal(sent.state.messages[0].createdAt, 12345);
+  assert.equal(sent.state.messages[0].status, "sent");
+  assert.equal(sent.state.messages[0].kind, "text");
+  assert.equal(sent.state.drafts.minji, "");
+  assert.equal(sendMessage(sent.state, "minji").error, "empty");
   assert.equal(initial.messages.length, 0);
 });
 
-test("failed retry preserves bubble identity and independent draft, and ignores double retry", () => {
-  let state = setDraft(createInitialState("empty"), "minji", "고마워요.");
-  const sent = sendMessage(state, "minji", { fail: true, now: 100 });
-  assert.equal(sent.state.messages[0].willFail, true);
-  state = settleMessage(sent.state, sent.messageId, "failed");
-  state = setDraft(state, "minji", "별도로 작성한 초안");
-  const retried = retryMessage(state, sent.messageId);
-  assert.equal(retried.accepted, true);
-  assert.equal(retried.messageId, sent.messageId);
-  assert.equal(retried.state.messages.length, 1);
-  assert.equal(retried.state.messages[0].text, "고마워요.");
-  assert.equal(retried.state.messages[0].createdAt, 100);
-  assert.equal(retried.state.drafts.minji, "별도로 작성한 초안");
-  assert.equal(retryMessage(retried.state, sent.messageId).accepted, false);
-  const complete = settleMessage(retried.state, sent.messageId, "sent");
-  assert.equal(complete.messages[0].status, "sent");
-  assert.equal(settleMessage(complete, sent.messageId, "failed"), complete);
-});
-
-test("pending guard is contact-specific, with failed retry waiting for another send", () => {
-  let state = createInitialState("failure");
-  state = setDraft(state, "minji", "새 메시지");
-  const minji = sendMessage(state, "minji");
-  assert.equal(retryMessage(minji.state, "msg-2").error, "pending");
-  const seoyeon = sendMessage(
-    setDraft(minji.state, "seoyeon", "안녕하세요"),
-    "seoyeon",
+test("sample media uses known IDs and preserves the existing draft", () => {
+  let state = setDraft(createInitialState("empty"), "minji", "작성하던 문장");
+  for (const [kind, payload] of [
+    ["photo", "walk"],
+    ["gift", "coffee"],
+    ["emoticon", "heart"],
+  ]) {
+    const sent = sendMessage(state, "minji", { kind, payload });
+    assert.equal(sent.accepted, true);
+    state = sent.state;
+    assert.equal(state.messages.at(-1).kind, kind);
+    assert.equal(state.messages.at(-1).payload, payload);
+    assert.equal(state.drafts.minji, "작성하던 문장");
+  }
+  assert.equal(
+    sendMessage(state, "minji", {
+      kind: "photo",
+      payload: "https://foreign.example/image",
+    }).error,
+    "invalid-payload",
   );
-  assert.equal(seoyeon.accepted, true);
-  assert.notEqual(seoyeon.messageId, minji.messageId);
+  assert.equal(
+    sendMessage(state, "minji", { kind: "gift", payload: "__proto__" }).error,
+    "invalid-payload",
+  );
+  assert.equal(
+    sendMessage(state, "minji", { kind: "photo", payload: { id: "walk" } })
+      .error,
+    "invalid-payload",
+  );
+  assert.equal(
+    sendMessage(state, "minji", { kind: "payment" }).error,
+    "unknown-kind",
+  );
+  assert.equal(
+    sendMessage(state, "outsider", { kind: "photo", payload: "walk" }).error,
+    "unknown-contact",
+  );
 });
 
-test("mode switch and reload preserve all settled history and per-contact drafts", () => {
+test("explicit text sends preserve separately typed draft content", () => {
+  const state = setDraft(createInitialState("empty"), "minji", "기존 초안");
+  const sent = sendMessage(state, "minji", { text: "별도 입력한 문장" });
+  assert.equal(sent.state.drafts.minji, "기존 초안");
+  assert.equal(sent.state.messages[0].text, "별도 입력한 문장");
+});
+
+test("v2 roundtrip preserves content, preferences, mode, and valid media", () => {
   let state = setDraft(
-    createInitialState("failure"),
+    createInitialState(),
     "seoyeon",
     "작성 중인 내용\n그대로",
   );
+  state = sendMessage(state, "minji", { kind: "gift", payload: "cake" }).state;
+  state = updatePreferences(state, {
+    fontSize: "large",
+    notifications: false,
+    profileName: "사용자",
+    profileMood: "산책하기 좋은 날",
+    profileAvatar: "flower",
+  });
   state = setMode(state, "standard");
-  const restored = validateState(JSON.parse(JSON.stringify(state)));
-  assert.equal(restored.mode, "standard");
-  assert.deepEqual(restored.messages, state.messages);
-  assert.deepEqual(restored.drafts, state.drafts);
+  assert.deepEqual(validateState(JSON.parse(JSON.stringify(state))), state);
   assert.equal(setMode(state, "unsupported"), state);
-  assert.equal(setMode(state, "easy").messages, state.messages);
 });
 
-test("reload recovers interrupted pending delivery as one retriable failed message", () => {
-  const sending = sendMessage(
-    setDraft(createInitialState("empty"), "minji", "창을 닫아도 보존"),
-    "minji",
+test("v1 migration recovers unsent text into drafts without inventing delivery", () => {
+  const legacy = {
+    version: 1,
+    mode: "standard",
+    drafts: { minji: "기존 초안", seoyeon: "", jeongwoo: "" },
+    messages: [
+      {
+        id: "msg-1",
+        contactId: "minji",
+        text: "이미 보낸 내용",
+        direction: "outgoing",
+        status: "sent",
+        createdAt: 1,
+      },
+      {
+        id: "msg-2",
+        contactId: "minji",
+        text: "아직 보내지 않은 내용",
+        direction: "outgoing",
+        status: "pending",
+        createdAt: 2,
+      },
+      {
+        id: "msg-3",
+        contactId: "seoyeon",
+        text: "보관할 내용",
+        direction: "outgoing",
+        status: "failed",
+        createdAt: 3,
+      },
+    ],
+  };
+  const migrated = validateState(legacy);
+  assert.equal(migrated.version, 2);
+  assert.equal(migrated.mode, "standard");
+  assert.deepEqual(
+    migrated.messages.map(({ text }) => text),
+    ["이미 보낸 내용"],
   );
-  const restored = validateState(JSON.parse(JSON.stringify(sending.state)));
-  assert.equal(restored.messages.length, 1);
-  assert.equal(restored.messages[0].id, sending.messageId);
-  assert.equal(restored.messages[0].status, "failed");
-  assert.equal(restored.drafts.minji, "");
-  const retried = retryMessage(restored, sending.messageId);
-  assert.equal(retried.accepted, true);
-  assert.equal(retried.state.messages.length, 1);
+  assert.equal(migrated.drafts.minji, "기존 초안\n아직 보내지 않은 내용");
+  assert.equal(migrated.drafts.seoyeon, "보관할 내용");
+  assert.equal(migrated.nextId, 4);
+  assert.equal(legacy.drafts.minji, "기존 초안");
+  assert.equal(
+    migrated.messages.every(({ status }) => status === "sent"),
+    true,
+  );
+  const roundtrip = validateState(JSON.parse(JSON.stringify(migrated)));
+  assert.deepEqual(roundtrip.messages, migrated.messages);
+  assert.deepEqual(roundtrip.drafts, migrated.drafts);
 });
 
-test("Unicode name search supports canonical-equivalent Korean and incidental whitespace", () => {
-  const state = createInitialState();
-  assert.deepEqual(
-    findContacts(state, "김민지".normalize("NFD")).map(({ id }) => id),
-    ["minji"],
-  );
-  assert.deepEqual(
-    findContacts(state, " 박 서 연 ").map(({ id }) => id),
-    ["seoyeon"],
-  );
-  assert.deepEqual(
-    findContacts(state, "정우").map(({ id }) => id),
-    ["jeongwoo"],
-  );
-  assert.equal(findContacts(state, "없는 친구").length, 0);
-  assert.equal(findContacts(state, "").length, 3);
+test("migration bounds combined drafts and v2 rejects unknown delivery statuses", () => {
+  const legacy = {
+    version: 1,
+    drafts: { minji: "🙂".repeat(495) },
+    messages: [
+      {
+        id: "msg-1",
+        contactId: "minji",
+        text: "추가 내용이 길어요",
+        direction: "outgoing",
+        status: "pending",
+        createdAt: 1,
+      },
+    ],
+  };
+  const migrated = validateState(legacy);
+  assert.equal(Array.from(migrated.drafts.minji).length, 500);
+  assert.equal(migrated.drafts.minji.startsWith("🙂".repeat(495)), true);
+  const corrupt = createInitialState();
+  corrupt.messages[0].status = "pending";
+  assert.equal(validateState(corrupt).messages.length, 0);
 });
 
-test("message length limit counts Unicode code points without breaking emoji", () => {
-  const state = setDraft(
+test("preferences whitelist fields and constrain values and visible string lengths", () => {
+  const original = createInitialState("empty");
+  const state = updatePreferences(
+    original,
+    JSON.parse(
+      '{"fontSize":"large","notifications":false,"profileName":"  새 이름  ","profileMood":"","__proto__":{"admin":true},"token":"secret"}',
+    ),
+  );
+  assert.deepEqual(state.preferences, {
+    fontSize: "large",
+    notifications: false,
+    profileName: "새 이름",
+    profileMood: "",
+    profileAvatar: "smile",
+  });
+  assert.equal(original.preferences.profileName, "나");
+  assert.equal({}.admin, undefined);
+  assert.deepEqual(
+    updatePreferences(state, {
+      fontSize: "huge",
+      notifications: "yes",
+      profileName: " ",
+      profileMood: null,
+      profileAvatar: "https://foreign.example/avatar",
+    }).preferences,
+    state.preferences,
+  );
+  const bounded = updatePreferences(state, {
+    profileName: "🙂".repeat(30),
+    profileMood: "🙂".repeat(100),
+  });
+  assert.equal(Array.from(bounded.preferences.profileName).length, 20);
+  assert.equal(Array.from(bounded.preferences.profileMood).length, 80);
+});
+
+test("profile avatars accept only the three local sample IDs and migrate a default", () => {
+  const state = createInitialState("empty");
+  for (const profileAvatar of ["smile", "flower", "mountain"]) {
+    const changed = updatePreferences(state, { profileAvatar });
+    assert.equal(changed.preferences.profileAvatar, profileAvatar);
+    assert.equal(
+      validateState(JSON.parse(JSON.stringify(changed))).preferences
+        .profileAvatar,
+      profileAvatar,
+    );
+  }
+  for (const profileAvatar of ["../secret", "__proto__", null, { id: "smile" }])
+    assert.equal(
+      updatePreferences(state, { profileAvatar }).preferences.profileAvatar,
+      "smile",
+    );
+  const legacy = { version: 1, messages: [], drafts: {} };
+  assert.equal(validateState(legacy).preferences.profileAvatar, "smile");
+});
+
+test("limits count Unicode code points and HTML-looking text remains string data", () => {
+  const long = setDraft(
     createInitialState("empty"),
     "minji",
-    "🙂".repeat(MAX_MESSAGE_LENGTH + 20),
+    "🙂".repeat(MAX_MESSAGE_LENGTH + 10),
   );
-  assert.equal(Array.from(state.drafts.minji).length, MAX_MESSAGE_LENGTH);
-  assert.equal(state.drafts.minji, "🙂".repeat(MAX_MESSAGE_LENGTH));
-  const sent = sendMessage(state, "minji");
-  assert.equal(sent.state.messages[0].text, state.drafts.minji);
-});
-
-test("HTML-looking message content stays verbatim inert string data", () => {
+  assert.equal(long.drafts.minji, "🙂".repeat(MAX_MESSAGE_LENGTH));
   const html =
     '<img src=x onerror="alert(1)"><script>globalThis.injected=true</script>';
-  const sending = sendMessage(
-    setDraft(createInitialState("empty"), "minji", html),
-    "minji",
+  const sent = sendMessage(createInitialState("empty"), "minji", {
+    text: html,
+  });
+  assert.equal(
+    validateState(JSON.parse(JSON.stringify(sent.state))).messages[0].text,
+    html,
   );
-  const restored = validateState(JSON.parse(JSON.stringify(sending.state)));
-  assert.equal(restored.messages[0].text, html);
-  assert.equal(typeof restored.messages[0].text, "string");
   assert.equal(globalThis.injected, undefined);
-  // Rendering must use textContent; this engine intentionally does not build HTML.
 });
 
-test("invalid storage envelopes recover fresh state without trusting injected metadata", () => {
-  for (const corrupt of [
+test("corrupt storage cannot inject foreign contacts, media, or duplicate IDs", () => {
+  for (const value of [
     null,
     [],
-    "broken",
     {},
-    { version: 2, messages: [], drafts: {} },
-    { version: 1, messages: "bad", drafts: {} },
-  ]) {
-    const restored = validateState(corrupt);
-    assert.equal(restored.version, 1);
-    assert.equal(restored.mode, "easy");
-    assert.equal(restored.messages[0].contactId, "minji");
-  }
-  assert.equal(Object.isFrozen(CONTACTS), true);
-});
-
-test("partial corrupted records, duplicate IDs and foreign contacts are discarded safely", () => {
-  const source = createInitialState("failure");
-  const corrupt = JSON.parse(JSON.stringify(source));
-  corrupt.mode = "<script>";
-  corrupt.nextId = -100;
-  corrupt.contacts = [{ id: "outsider", name: "real person" }];
-  corrupt.drafts = {
-    minji: { unsafe: "not a string" },
-    seoyeon: "x".repeat(800),
-    outsider: "private",
-  };
-  corrupt.messages.push(
+    { version: 3, drafts: {}, messages: [] },
+    { version: 2, drafts: {}, messages: "bad" },
+  ])
+    assert.equal(validateState(value).version, 2);
+  const source = createInitialState();
+  source.messages.push(
     source.messages[0],
     null,
     { ...source.messages[0], id: "msg-99", contactId: "outsider" },
     { ...source.messages[0], id: "msg-100", createdAt: Infinity },
-    { ...source.messages[0], id: "msg-101", text: {} },
+    { ...source.messages[0], id: "msg-101", kind: "photo", payload: "foreign" },
   );
-  const restored = validateState(corrupt);
-  assert.equal(restored.messages.length, 2);
+  source.drafts = { minji: {}, seoyeon: "x".repeat(800), outsider: "private" };
+  source.nextId = -10;
+  const restored = validateState(source);
+  assert.equal(restored.messages.length, 1);
   assert.deepEqual(Object.keys(restored.drafts), [
     "minji",
     "seoyeon",
     "jeongwoo",
   ]);
   assert.equal(restored.drafts.minji, "");
-  assert.equal(restored.drafts.seoyeon.length, MAX_MESSAGE_LENGTH);
-  assert.equal(restored.mode, "easy");
-  assert.equal(restored.contacts, undefined);
-  const sending = sendMessage(
-    setDraft(restored, "minji", "새 메시지"),
-    "minji",
+  assert.equal(restored.drafts.seoyeon.length, 500);
+  assert.equal(
+    sendMessage(restored, "minji", { text: "다음" }).messageId,
+    "msg-2",
   );
-  assert.equal(sending.messageId, "msg-3");
+  assert.equal(setDraft(restored, "__proto__", "bad"), restored);
+  assert.equal(Object.isFrozen(CONTACTS), true);
 });
 
-test("unknown contacts and invalid settlement cannot alter existing data", () => {
-  const state = createInitialState();
-  assert.equal(setDraft(state, "__proto__", "bad"), state);
-  assert.equal(sendMessage(state, "outsider").error, "unknown-contact");
-  assert.equal(settleMessage(state, "msg-1", "failed"), state);
-  assert.equal(settleMessage(state, "missing", "sent"), state);
-  assert.equal(settleMessage(state, "msg-1", "invented"), state);
-  assert.equal(retryMessage(state, "msg-1").error, "not-failed");
+test("history retention is limited to the newest 300 entries", () => {
+  let state = createInitialState("empty");
+  for (let index = 0; index < 305; index += 1)
+    state = sendMessage(state, "minji", {
+      text: `메시지 ${index}`,
+      now: index,
+    }).state;
+  assert.equal(state.messages.length, 300);
+  assert.equal(state.messages[0].text, "메시지 5");
+  assert.equal(validateState(state).messages.length, 300);
 });
